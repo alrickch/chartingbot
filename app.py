@@ -218,7 +218,10 @@ If you can't understand the request or it's not possible, return:
         st.write("Raw LLM Response:", response.text)
         
         cleaned_response = clean_llm_response(response)
+        st.write("clean LLM Response:", cleaned_response)
+
         json_data = extract_json_from_text(cleaned_response['text'])
+        st.write("json_data:", json_data)
         
         if json_data:
             json_data['conversation_text'] = cleaned_response['text'].replace(str(json_data), '').strip()
