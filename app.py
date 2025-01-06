@@ -144,33 +144,6 @@ def extract_json_from_text(text):
     
     return None
 
-def clean_llm_response(response):
-    """Clean LLM response and separate code from text."""
-    conversation_text = []
-    code_blocks = []
-    
-    for part in response.parts:
-        text = part.text
-        
-        code_pattern = r'```(?:python|json)?\s*(.*?)\s*```'
-        matches = re.findall(code_pattern, text, re.DOTALL)
-        
-        for match in matches:
-            code_blocks.append(match.strip())
-            text = text.replace(f"```{match}```", "")
-            text = text.replace("```python", "")
-            text = text.replace("```json", "")
-            text = text.replace("```", "")
-        
-        text = text.strip()
-        if text:
-            conversation_text.append(text)
-    
-    return {
-        'text': ' '.join(conversation_text),
-        'code': code_blocks
-    }
-
 def get_llm_response(prompt, available_data):
     response_schema = {
         "type": "object",
@@ -267,22 +240,12 @@ If you can't understand the request or it's not possible, return:
         )
         
         # Display raw response for debugging
-        st.write("Raw LLM Response:", response.text)
-        
-        cleaned_response = clean_llm_response(response)
-        st.write("clean LLM Response:", cleaned_response)
+        # st.write("Raw LLM Response:", response.text)
 
-#       json_data = extract_json_from_text(cleaned_response['text'])
         json_data = json.loads(response.text)
-        st.write("json_data:", json_data)
+        # st.write("json_data:", json_data)
         return json_data
         
-#       if json_data:
-#           json_data['conversation_text'] = cleaned_response['text'].replace(str(json_data), '').strip()
-#           return json_data
-#       else:
-#           return {"error": "Failed to parse the response. Please try again with a clearer request."}
-            
     except json.JSONDecodeError as e:
         return {"error": f"Failed to parse JSON response: {str(e)}"}
     except Exception as e:
@@ -325,15 +288,15 @@ if prompt := st.chat_input("What would you like to visualize?"):
             else:
                 st.session_state.messages.append({"role": "assistant", "content": llm_response["message"]})
             
-            st.code(generate_chart_code(
-                llm_response["chart_type"],
-                llm_response["dataset"],
-                llm_response["x_column"],
-                llm_response["y_column"],
-                llm_response.get("filter_column"),
-                llm_response.get("filter_value"),
-                llm_response.get("customization")
-            ))
+            # st.code(generate_chart_code(
+            #     llm_response["chart_type"],
+            #     llm_response["dataset"],
+            #     llm_response["x_column"],
+            #     llm_response["y_column"],
+            #     llm_response.get("filter_column"),
+            #     llm_response.get("filter_value"),
+            #     llm_response.get("customization")
+            # ))
             
             # Display chart
             st.plotly_chart(fig)
