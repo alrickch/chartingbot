@@ -128,6 +128,48 @@ st.plotly_chart(fig)
 """
     return code
 
+def extract_json_from_text(text):
+    """Extract JSON object from text using regex."""
+    json_pattern = r'\{[^{}]*\}'
+    matches = re.findall(json_pattern, text)
+    
+    if not matches:
+        return None
+    
+    for match in matches:
+        try:
+            return json.loads(match)
+        except json.JSONDecodeError:
+            continue
+    
+    return None
+
+def clean_llm_response(response):
+    """Clean LLM response and separate code from text."""
+    conversation_text = []
+    code_blocks = []
+    
+    for part in response.parts:
+        text = part.text
+        
+        code_pattern = r'```(?:python)?\s*(.*?)\s*```'
+        matches = re.findall(code_pattern, text, re.DOTALL)
+        
+        for match in matches:
+            code_blocks.append(match.strip())
+            text = text.replace(f"```{match}```", "")
+            text = text.replace("```python", "")
+            text = text.replace("```", "")
+        
+        text = text.strip()
+        if text:
+            conversation_text.append(text)
+    
+    return {
+        'text': ' '.join(conversation_text),
+        'code': code_blocks
+    }
+
 def get_llm_response(prompt, available_data):
     context = f"""
 You are a helpful assistant that creates charts based on user requests.
