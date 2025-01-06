@@ -172,6 +172,69 @@ def clean_llm_response(response):
     }
 
 def get_llm_response(prompt, available_data):
+    response_schema = {
+        "type": "object",
+        "properties": {
+            "chart_type": {
+                "type": "string",
+                "enum": ["bar", "line", "pie", "scatter"],
+                "description": "Type of chart to generate"
+            },
+            "dataset": {
+                "type": "string",
+                "enum": ["sales", "website_traffic"],
+                "description": "Dataset to use for the chart"
+            },
+            "x_column": {
+                "type": "string",
+                "description": "Column name for x-axis"
+            },
+            "y_column": {
+                "type": "string",
+                "description": "Column name for y-axis"
+            },
+            "filter_column": {
+                "type": "string",
+                "description": "Column name for filtering (optional)"
+            },
+            "filter_value": {
+                "type": "string",
+                "description": "Value to filter by (optional)"
+            },
+            "customization": {
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "description": "Chart title"
+                    },
+                    "x_axis_title": {
+                        "type": "string",
+                        "description": "X-axis label"
+                    },
+                    "y_axis_title": {
+                        "type": "string",
+                        "description": "Y-axis label"
+                    },
+                    "color": {
+                        "type": "string",
+                        "description": "Color for the chart (name or hex code)"
+                    },
+                    "template": {
+                        "type": "string",
+                        "enum": ["plotly", "plotly_white", "plotly_dark", "seaborn"],
+                        "description": "Chart template name"
+                    }
+                }
+            },
+            "message": {
+                "type": "string",
+                "description": "Response message to the user"
+            }
+        },
+        "required": ["chart_type", "dataset", "x_column", "y_column", "message"]
+    }
+    
     context = f"""
 You are a helpful assistant that creates charts based on user requests.
 Available datasets:
@@ -181,27 +244,9 @@ Available datasets:
 Your task is to:
 1. Understand what chart the user wants, including any filtering and customization requirements
 2. Select appropriate dataset and columns
-3. First provide a JSON response with the following structure:
-{{
-    "chart_type": "bar/line/pie/scatter",
-    "dataset": "sales/website_traffic",
-    "x_column": "column_name",
-    "y_column": "column_name",
-    "filter_column": "column_name_for_filtering (optional)",
-    "filter_value": "value_to_filter_by (optional)",
-    "customization": {{
-        "title": "chart title (optional)",
-        "x_axis_title": "x-axis label (optional)",
-        "y_axis_title": "y-axis label (optional)",
-        "color": "color name or hex code (optional)",
-        "template": "plotly template name (optional)"
-    }},
-    "message": "Your response message to the user"
-}}
+3. provide a JSON response with the specified schema. The response should be a valid JSON object matching the specified schema.
 
 IMPORTANT: The chart_type must be exactly one of these values: bar, line, pie, scatter. No other values are allowed.
-
-Then, provide a natural language explanation of the visualization.
 
 If you can't understand the request or it's not possible, return:
 {{
@@ -212,7 +257,14 @@ If you can't understand the request or it's not possible, return:
     full_prompt = f"{context}\n\nUser request: {prompt}"
 
     try:
-        response = model.generate_content(full_prompt)
+        generation_config = genai.GenerationConfig(
+            resposne_mime_type='application/json',
+            response_schema=response_schema
+        )
+        response = model.generate_content(
+            full_prompt,
+            generation_config=generation_config
+        )
         
         # Display raw response for debugging
         st.write("Raw LLM Response:", response.text)
@@ -220,22 +272,26 @@ If you can't understand the request or it's not possible, return:
         cleaned_response = clean_llm_response(response)
         st.write("clean LLM Response:", cleaned_response)
 
-        json_data = extract_json_from_text(cleaned_response['text'])
+#       json_data = extract_json_from_text(cleaned_response['text'])
+        json_data = json.loads(response.text)
         st.write("json_data:", json_data)
+        return json_data
         
-        if json_data:
-            json_data['conversation_text'] = cleaned_response['text'].replace(str(json_data), '').strip()
-            return json_data
-        else:
-            return {"error": "Failed to parse the response. Please try again with a clearer request."}
+#       if json_data:
+#           json_data['conversation_text'] = cleaned_response['text'].replace(str(json_data), '').strip()
+#           return json_data
+#       else:
+#           return {"error": "Failed to parse the response. Please try again with a clearer request."}
             
+    except json.JSONDecodeError as e:
+        return {"error": f"Failed to parse JSON response: {str(e)}"}
     except Exception as e:
         return {"error": f"An error occurred while processing your request: {str(e)}"}
 
-st.title("📊 AI Chart Generation Assistant")
+st.title("Chart Assistant")
 
 st.markdown("""
-Welcome! I'm your AI assistant for creating charts. I can help you visualize:
+Welcome! I'm an AI assistant for creating charts. I can help you visualize:
 - Sales data (Revenue, Units by Month, filtered by Category: Electronics, Clothing, Food)
 - Website traffic data (Visitors and Bounce Rate by Day)
 
