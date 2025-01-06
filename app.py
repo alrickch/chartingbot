@@ -152,13 +152,14 @@ def clean_llm_response(response):
     for part in response.parts:
         text = part.text
         
-        code_pattern = r'```(?:python)?\s*(.*?)\s*```'
+        code_pattern = r'```(?:python|json)?\s*(.*?)\s*```'
         matches = re.findall(code_pattern, text, re.DOTALL)
         
         for match in matches:
             code_blocks.append(match.strip())
             text = text.replace(f"```{match}```", "")
             text = text.replace("```python", "")
+            text = text.replace("```json", "")
             text = text.replace("```", "")
         
         text = text.strip()
