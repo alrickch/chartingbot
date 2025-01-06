@@ -198,8 +198,7 @@ Your task is to:
     "message": "Your response message to the user"
 }}
 
-Examples of valid colors: "red", "blue", "#FF0000", "rgb(255,0,0)"
-Available templates: "plotly", "plotly_white", "plotly_dark", "seaborn"
+IMPORTANT: The chart_type must be exactly one of these values: bar, line, pie, scatter. No other values are allowed.
 
 Then, provide a natural language explanation of the visualization.
 
@@ -213,6 +212,10 @@ If you can't understand the request or it's not possible, return:
 
     try:
         response = model.generate_content(full_prompt)
+        
+        # Display raw response for debugging
+        st.write("Raw LLM Response:", response.text)
+        
         cleaned_response = clean_llm_response(response)
         json_data = extract_json_from_text(cleaned_response['text'])
         
@@ -224,8 +227,6 @@ If you can't understand the request or it's not possible, return:
             
     except Exception as e:
         return {"error": f"An error occurred while processing your request: {str(e)}"}
-
-# [Previous helper functions (clean_llm_response, extract_json_from_text, etc.) remain the same...]
 
 st.title("📊 AI Chart Generation Assistant")
 
