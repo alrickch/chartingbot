@@ -258,7 +258,7 @@ If you can't understand the request or it's not possible, return:
 
     try:
         generation_config = genai.GenerationConfig(
-            resposne_mime_type='application/json',
+            response_mime_type='application/json',
             response_schema=response_schema
         )
         response = model.generate_content(
