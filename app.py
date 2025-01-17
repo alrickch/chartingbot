@@ -281,7 +281,12 @@ if prompt := st.chat_input("What would you like to visualize?"):
     llm_response = get_llm_response(prompt, get_sample_data())
     
     if "error" in llm_response:
-        st.session_state.messages.append({"role": "assistant", "content": llm_response["error"]})
+        # Only add the error message, with no chart configuration
+        st.session_state.messages.append({
+            "role": "assistant", 
+            "content": llm_response["error"],
+            "is_error": True  # Add flag to identify error messages
+        })
     else:
         try:
             # Create the chart configuration
@@ -301,7 +306,8 @@ if prompt := st.chat_input("What would you like to visualize?"):
                 "role": "assistant",
                 "content": llm_response["message"],
                 "chart_config": chart_config,
-                "chart_id": current_chart_id
+                "chart_id": current_chart_id,
+                "is_error": False  # Add flag to identify non-error messages
             }
             st.session_state.chart_counter += 1
             
@@ -311,12 +317,17 @@ if prompt := st.chat_input("What would you like to visualize?"):
             # Add follow-up message
             st.session_state.messages.append({
                 "role": "assistant", 
-                "content": "Would you like to create another chart? Feel free to ask!"
+                "content": "Would you like to create another chart? Feel free to ask!",
+                "is_error": False
             })
             
         except Exception as e:
             error_message = f"Sorry, I encountered an error while creating the chart: {str(e)}"
-            st.session_state.messages.append({"role": "assistant", "content": error_message})
+            st.session_state.messages.append({
+                "role": "assistant", 
+                "content": error_message,
+                "is_error": True
+            })
 
 # Display chat history with inline charts
 for message in st.session_state.messages:
@@ -324,8 +335,8 @@ for message in st.session_state.messages:
         # Display the message content
         st.write(message["content"])
         
-        # If this message contains a chart configuration, create and display the chart
-        if "chart_config" in message:
+        # Only create and display chart if message has chart config AND is not an error
+        if "chart_config" in message and not message.get("is_error", False):
             # Create the chart
             fig = create_chart(
                 message["chart_config"]["chart_type"],
