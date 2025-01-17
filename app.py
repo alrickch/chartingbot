@@ -281,23 +281,22 @@ if prompt := st.chat_input("What would you like to visualize?"):
         st.session_state.messages.append({"role": "assistant", "content": llm_response["error"]})
     else:
         try:
-            # Create the chart
-            fig = create_chart(
-                llm_response["chart_type"],
-                llm_response["dataset"],
-                llm_response["x_column"],
-                llm_response["y_column"],
-                llm_response.get("filter_column"),
-                llm_response.get("filter_value"),
-                llm_response.get("customization")
-            )
+            # Create the chart configuration
+            chart_config = {
+                "chart_type": llm_response["chart_type"],
+                "dataset": llm_response["dataset"],
+                "x_column": llm_response["x_column"],
+                "y_column": llm_response["y_column"],
+                "filter_column": llm_response.get("filter_column"),
+                "filter_value": llm_response.get("filter_value"),
+                "customization": llm_response.get("customization")
+            }
             
-            # Create a complete response with message, chart, code, and download button
+            # Create a complete response with message and chart configuration
             chart_response = {
                 "role": "assistant",
                 "content": llm_response["message"],
-                "chart": fig,
-                "code": code
+                "chart_config": chart_config
             }
             
             # Add response to chat history
@@ -319,16 +318,27 @@ for message in st.session_state.messages:
         # Display the message content
         st.write(message["content"])
         
-        # If this message contains a chart, display it along with code and download button
-        if "chart" in message:
-            # Display the chart
-            st.plotly_chart(message["chart"], use_container_width=True)
+        # If this message contains a chart configuration, create and display the chart
+        if "chart_config" in message:
+            # Create the chart
+            fig = create_chart(
+                message["chart_config"]["chart_type"],
+                message["chart_config"]["dataset"],
+                message["chart_config"]["x_column"],
+                message["chart_config"]["y_column"],
+                message["chart_config"]["filter_column"],
+                message["chart_config"]["filter_value"],
+                message["chart_config"]["customization"]
+            )
             
-        # Add download button
-        png_img = get_chart_image(message["chart"])
-        st.download_button(
-            label="Download PNG",
-            data=png_img,
-            file_name="chart.png",
-            mime="image/png"
-        )
+            # Display the chart
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Add download button
+            png_img = get_chart_image(fig)
+            st.download_button(
+                label="Download PNG",
+                data=png_img,
+                file_name="chart.png",
+                mime="image/png"
+            )
