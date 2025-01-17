@@ -294,14 +294,14 @@ if prompt := st.chat_input("What would you like to visualize?"):
             }
             
             # Create a complete response with message and chart configuration
-            current_download_id = st.session_state.download_counter
+            current_chart_id = st.session_state.chart_counter
             chart_response = {
                 "role": "assistant",
                 "content": llm_response["message"],
                 "chart_config": chart_config,
-                "download_id": current_download_id
+                "chart_id": current_chart_id
             }
-            st.session_state.download_counter += 1
+            st.session_state.chart_counter += 1
             
             # Add response to chat history
             st.session_state.messages.append(chart_response)
@@ -335,15 +335,15 @@ for message in st.session_state.messages:
                 message["chart_config"]["customization"]
             )
             
-            # Display the chart
-            st.plotly_chart(fig, use_container_width=True)
+            # Display the chart with unique key
+            st.plotly_chart(fig, use_container_width=True, key=f"chart_{message['chart_id']}")
             
             # Add download button with unique key
             png_img = get_chart_image(fig)
             st.download_button(
                 label="Download PNG",
                 data=png_img,
-                file_name=f"chart_{message['download_id']}.png",
+                file_name=f"chart_{message['chart_id']}.png",
                 mime="image/png",
-                key=f"download_{message['download_id']}"
+                key=f"download_{message['chart_id']}"
             )
