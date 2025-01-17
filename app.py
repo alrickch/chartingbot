@@ -324,20 +324,11 @@ for message in st.session_state.messages:
             # Display the chart
             st.plotly_chart(message["chart"], use_container_width=True)
             
-            # Create columns for code and download button
-            col1, col2 = st.columns([3, 1])
-            
-            with col1:
-                # Show code in expander
-                with st.expander("Show Code"):
-                    st.code(message["code"])
-            
-            with col2:
-                # Add download button
-                png_img = get_chart_image(message["chart"])
-                st.download_button(
-                    label="Download PNG",
-                    data=png_img,
-                    file_name="chart.png",
-                    mime="image/png"
-                )
+        # Add download button
+        png_img = get_chart_image(message["chart"])
+        st.download_button(
+            label="Download PNG",
+            data=png_img,
+            file_name="chart.png",
+            mime="image/png"
+        )
