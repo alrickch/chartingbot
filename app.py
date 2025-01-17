@@ -256,6 +256,8 @@ st.title("Chart Assistant")
 # Initialize messages if not in session state
 if 'messages' not in st.session_state:
     st.session_state.messages = []
+if 'chart_counter' not in st.session_state:
+    st.session_state.chart_counter = 0 # Add counter for unique charts
 if 'download_counter' not in st.session_state:
     st.session_state.download_counter = 0  # Add counter for unique download buttons
 
