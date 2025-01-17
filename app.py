@@ -264,15 +264,24 @@ Try asking for something like:
 "Make a bar chart of monthly revenue with custom axis labels"
 """)
 
+# Initialize messages if not in session state
+if 'messages' not in st.session_state:
+    st.session_state.messages = []
+
+# Chat input
 if prompt := st.chat_input("What would you like to visualize?"):
+    # Add user message
     st.session_state.messages.append({"role": "user", "content": prompt})
     
+    # Get response from LLM
     llm_response = get_llm_response(prompt, get_sample_data())
     
     if "error" in llm_response:
+        # Add error message to chat
         st.session_state.messages.append({"role": "assistant", "content": llm_response["error"]})
     else:
         try:
+            # Create the chart
             fig = create_chart(
                 llm_response["chart_type"],
                 llm_response["dataset"],
@@ -283,38 +292,52 @@ if prompt := st.chat_input("What would you like to visualize?"):
                 llm_response.get("customization")
             )
             
-            if "conversation_text" in llm_response:
-                st.session_state.messages.append({"role": "assistant", "content": llm_response["conversation_text"]})
-            else:
-                st.session_state.messages.append({"role": "assistant", "content": llm_response["message"]})
+            # Create a complete response with message, chart, code, and download button
+            chart_response = {
+                "role": "assistant",
+                "content": llm_response["message"],
+                "chart": fig,
+                "code": code
+            }
             
-            # st.code(generate_chart_code(
-            #     llm_response["chart_type"],
-            #     llm_response["dataset"],
-            #     llm_response["x_column"],
-            #     llm_response["y_column"],
-            #     llm_response.get("filter_column"),
-            #     llm_response.get("filter_value"),
-            #     llm_response.get("customization")
-            # ))
+            # Add response to chat history
+            st.session_state.messages.append(chart_response)
             
-            # Display chart
-            st.plotly_chart(fig)
+            # Add follow-up message
+            st.session_state.messages.append({
+                "role": "assistant", 
+                "content": "Would you like to create another chart? Feel free to ask!"
+            })
             
-            # Add PNG download button
-            png_img = get_chart_image(fig)
-            st.download_button(
-                label="Download Chart as PNG",
-                data=png_img,
-                file_name="chart.png",
-                mime="image/png"
-            )
-            
-            st.session_state.messages.append({"role": "assistant", "content": "Would you like to create another chart? Feel free to ask!"})
         except Exception as e:
             error_message = f"Sorry, I encountered an error while creating the chart: {str(e)}"
             st.session_state.messages.append({"role": "assistant", "content": error_message})
 
+# Display chat history with inline charts
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
+        # Display the message content
         st.write(message["content"])
+        
+        # If this message contains a chart, display it along with code and download button
+        if "chart" in message:
+            # Display the chart
+            st.plotly_chart(message["chart"], use_container_width=True)
+            
+            # Create columns for code and download button
+            col1, col2 = st.columns([3, 1])
+            
+            with col1:
+                # Show code in expander
+                with st.expander("Show Code"):
+                    st.code(message["code"])
+            
+            with col2:
+                # Add download button
+                png_img = get_chart_image(message["chart"])
+                st.download_button(
+                    label="Download PNG",
+                    data=png_img,
+                    file_name="chart.png",
+                    mime="image/png"
+                )
