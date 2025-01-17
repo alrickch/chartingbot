@@ -253,6 +253,11 @@ If you can't understand the request or it's not possible, return:
 
 st.title("Chart Assistant")
 
+# Initialize messages if not in session state
+if 'messages' not in st.session_state:
+    st.session_state.messages = []
+    st.session_state.download_counter = 0  # Add counter for unique download buttons
+    
 st.markdown("""
 Welcome! I'm an AI assistant for creating charts. I can help you visualize:
 - Sales data (Revenue, Units by Month, filtered by Category: Electronics, Clothing, Food)
@@ -264,10 +269,6 @@ Try asking for something like:
 "Make a bar chart of monthly revenue with custom axis labels"
 """)
 
-# Initialize messages if not in session state
-if 'messages' not in st.session_state:
-    st.session_state.messages = []
-
 # Chat input
 if prompt := st.chat_input("What would you like to visualize?"):
     # Add user message
@@ -277,7 +278,6 @@ if prompt := st.chat_input("What would you like to visualize?"):
     llm_response = get_llm_response(prompt, get_sample_data())
     
     if "error" in llm_response:
-        # Add error message to chat
         st.session_state.messages.append({"role": "assistant", "content": llm_response["error"]})
     else:
         try:
@@ -296,8 +296,10 @@ if prompt := st.chat_input("What would you like to visualize?"):
             chart_response = {
                 "role": "assistant",
                 "content": llm_response["message"],
-                "chart_config": chart_config
+                "chart_config": chart_config,
+                "download_id": st.session_state.download_counter  # Add unique identifier
             }
+            st.session_state.download_counter += 1  # Increment counter
             
             # Add response to chat history
             st.session_state.messages.append(chart_response)
@@ -334,11 +336,12 @@ for message in st.session_state.messages:
             # Display the chart
             st.plotly_chart(fig, use_container_width=True)
             
-            # Add download button
+            # Add download button with unique key
             png_img = get_chart_image(fig)
             st.download_button(
                 label="Download PNG",
                 data=png_img,
-                file_name="chart.png",
-                mime="image/png"
+                file_name=f"chart_{message['download_id']}.png",
+                mime="image/png",
+                key=f"download_{message['download_id']}"  # Add unique key
             )
