@@ -218,13 +218,18 @@ Your task is to:
 1. Understand what chart the user wants, including any filtering and customization requirements
 2. Select appropriate dataset and columns
 3. provide a JSON response with the specified schema. The response should be a valid JSON object matching the specified schema.
-
-IMPORTANT: The chart_type must be exactly one of these values: bar, line, pie, scatter. No other values are allowed.
-
-If you can't understand the request or it's not possible, return:
+4. If the request is not related to creating a chart, or is unclear, return only:
+{{
+    "error": "Could not understand the request. Please ask for a specific chart type (bar, line, pie, scatter) with data you'd like to visualize."
+}}
+If the request is not possible, return:
 {{
     "error": "Error message explaining the issue"
 }}
+IMPORTANT: 
+-The chart_type must be exactly one of these values: bar, line, pie, scatter. No other values are allowed.
+-Return an error if the request is not clearly about creating a chart.
+-Only return valid JSON.
 """
 
     full_prompt = f"{context}\n\nUser request: {prompt}"
@@ -232,6 +237,7 @@ If you can't understand the request or it's not possible, return:
     try:
         generation_config = genai.GenerationConfig(
             response_mime_type='application/json',
+            temperature=0.1,
             response_schema=response_schema
         )
         response = model.generate_content(
@@ -244,6 +250,20 @@ If you can't understand the request or it's not possible, return:
 
         json_data = json.loads(response.text)
         # st.write("json_data:", json_data)
+
+         # Validate response structure for non-error responses
+        if "error" not in json_data:
+            required_fields = ["chart_type", "dataset", "x_column", "y_column", "message"]
+            if not all(field in json_data for field in required_fields):
+                return {"error": "Invalid response structure from LLM"}
+                    
+            valid_chart_types = ["bar", "line", "pie", "scatter"]
+            if json_data["chart_type"] not in valid_chart_types:
+                return {"error": "Invalid chart type specified"}
+                    
+            valid_datasets = ["sales", "website_traffic"]
+            if json_data["dataset"] not in valid_datasets:
+                return {"error": "Invalid dataset specified"}
         return json_data
         
     except json.JSONDecodeError as e:
