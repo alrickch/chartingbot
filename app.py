@@ -256,8 +256,9 @@ st.title("Chart Assistant")
 # Initialize messages if not in session state
 if 'messages' not in st.session_state:
     st.session_state.messages = []
+if 'download_counter' not in st.session_state:
     st.session_state.download_counter = 0  # Add counter for unique download buttons
-    
+
 st.markdown("""
 Welcome! I'm an AI assistant for creating charts. I can help you visualize:
 - Sales data (Revenue, Units by Month, filtered by Category: Electronics, Clothing, Food)
@@ -293,13 +294,14 @@ if prompt := st.chat_input("What would you like to visualize?"):
             }
             
             # Create a complete response with message and chart configuration
+            current_download_id = st.session_state.download_counter
             chart_response = {
                 "role": "assistant",
                 "content": llm_response["message"],
                 "chart_config": chart_config,
-                "download_id": st.session_state.download_counter  # Add unique identifier
+                "download_id": current_download_id
             }
-            st.session_state.download_counter += 1  # Increment counter
+            st.session_state.download_counter += 1
             
             # Add response to chat history
             st.session_state.messages.append(chart_response)
@@ -343,5 +345,5 @@ for message in st.session_state.messages:
                 data=png_img,
                 file_name=f"chart_{message['download_id']}.png",
                 mime="image/png",
-                key=f"download_{message['download_id']}"  # Add unique key
+                key=f"download_{message['download_id']}"
             )
