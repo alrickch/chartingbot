@@ -338,19 +338,22 @@ if prompt := st.chat_input("What would you like to visualize?"):
     llm_response = get_llm_response(prompt, get_sample_data())
     
     if "error" in llm_response:
+        #set error state first
+        st.session_state.last_was_error = True
+        
         # Store only user messages and messages without charts
-        filtered_messages = [
+        st.session_state.messages = [
             msg for msg in st.session_state.messages 
-            if msg["role"] == "user" or "chart_config" not in msg
+            if msg["role"] == "user"
         ]
-        st.session_state.messages = filtered_messages
         
         # Add the error message
         st.session_state.messages.append({
             "role": "assistant", 
-            "content": llm_response["error"]
+            "content": llm_response["error"],
+            "is_error": True
         })
-        st.session_state.last_was_error = True
+
     else:
         try:
             st.session_state.last_was_error = False
@@ -387,13 +390,14 @@ if prompt := st.chat_input("What would you like to visualize?"):
             })
             
         except Exception as e:
+            st.session_state.last_was_error = True
             error_message = f"Sorry, I encountered an error while creating the chart: {str(e)}"
             st.session_state.messages.append({
                 "role": "assistant", 
                 "content": error_message,
                 "is_error": True
             })
-            st.session_state.last_was_error = True
+            
 
 # Display chat history with inline charts
 for message in st.session_state.messages:
@@ -401,11 +405,15 @@ for message in st.session_state.messages:
         # Display the message content
         st.write(message["content"])
         
-        # Only create and display chart if message has chart config AND is not an error
-        if ("chart_config" in message and 
+        show_chart = (
+            "chart_config" in message and 
             not message.get("is_error", False) and 
-            not st.session_state.last_was_error):
-            # Create the chart
+            not st.session_state.last_was_error and
+            "role" in message and 
+            message["role"] == "assistant"
+        )
+        
+        if show_chart:
             fig = create_chart(
                 message["chart_config"]["chart_type"],
                 message["chart_config"]["dataset"],
