@@ -21,6 +21,8 @@ if 'chart_counter' not in st.session_state:
     st.session_state.chart_counter = 0 # Add counter for unique charts
 if 'download_counter' not in st.session_state:
     st.session_state.download_counter = 0  # Add counter for unique download buttons
+if 'last_was_error' not in st.session_state:
+    st.session_state.last_was_error = False
 
 # Sample dataset
 def get_sample_data():
