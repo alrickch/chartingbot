@@ -353,6 +353,7 @@ if prompt := st.chat_input("What would you like to visualize?"):
             "content": llm_response["error"],
             "is_error": True
         })
+        st.write("Debug - Just added error message:", st.session_state.messages[-1])
 
     else:
         try:
