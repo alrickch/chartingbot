@@ -405,9 +405,14 @@ for message in st.session_state.messages:
         # Display the message content
         st.write(message["content"])
         
+        st.write(f"Debug - Message:")
+        st.write("- has chart_config:","chart_config" in message)
+        st.write("- is_error:", message.get("is_error", False))
+        st.write("- role:", message.get("role", "unknown"))
+
         show_chart = (
             "chart_config" in message and 
-            not message.get("is_error", False) and 
+            not message.get("is_error", True) and 
             not st.session_state.last_was_error and
             "role" in message and 
             message["role"] == "assistant"
