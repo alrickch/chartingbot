@@ -17,6 +17,10 @@ model = genai.GenerativeModel('gemini-1.5-flash')
 # Initialize session state variables if they don't exist
 if 'messages' not in st.session_state:
     st.session_state.messages = []
+if 'chart_counter' not in st.session_state:
+    st.session_state.chart_counter = 0 # Add counter for unique charts
+if 'download_counter' not in st.session_state:
+    st.session_state.download_counter = 0  # Add counter for unique download buttons
 
 # Sample dataset
 def get_sample_data():
@@ -310,13 +314,7 @@ IMPORTANT:
 
 st.title("Chart Assistant")
 
-# Initialize messages if not in session state
-if 'messages' not in st.session_state:
-    st.session_state.messages = []
-if 'chart_counter' not in st.session_state:
-    st.session_state.chart_counter = 0 # Add counter for unique charts
-if 'download_counter' not in st.session_state:
-    st.session_state.download_counter = 0  # Add counter for unique download buttons
+
 
 st.markdown("""
 Welcome! I'm an AI assistant for creating charts. I can help you visualize:
@@ -338,14 +336,22 @@ if prompt := st.chat_input("What would you like to visualize?"):
     llm_response = get_llm_response(prompt, get_sample_data())
     
     if "error" in llm_response:
-        # Only add the error message, with no chart configuration
+        # Store only user messages and messages without charts
+        filtered_messages = [
+            msg for msg in st.session_state.messages 
+            if msg["role"] == "user" or "chart_config" not in msg
+        ]
+        st.session_state.messages = filtered_messages
+        
+        # Add the error message
         st.session_state.messages.append({
             "role": "assistant", 
-            "content": llm_response["error"],
-            "is_error": True  # Add flag to identify error messages
+            "content": llm_response["error"]
         })
+        st.session_state.last_was_error = True
     else:
         try:
+            st.session_state.last_was_error = False
             # Create the chart configuration
             chart_config = {
                 "chart_type": llm_response["chart_type"],
@@ -385,6 +391,7 @@ if prompt := st.chat_input("What would you like to visualize?"):
                 "content": error_message,
                 "is_error": True
             })
+            st.session_state.last_was_error = True
 
 # Display chat history with inline charts
 for message in st.session_state.messages:
@@ -393,7 +400,7 @@ for message in st.session_state.messages:
         st.write(message["content"])
         
         # Only create and display chart if message has chart config AND is not an error
-        if "chart_config" in message and not message.get("is_error", False):
+        if "chart_config" in message and not message.get("is_error", False) and not st.session_stat.last_was_error:
             # Create the chart
             fig = create_chart(
                 message["chart_config"]["chart_type"],
