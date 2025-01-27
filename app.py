@@ -402,7 +402,7 @@ for message in st.session_state.messages:
         # Only create and display chart if message has chart config AND is not an error
         if ("chart_config" in message and 
             not message.get("is_error", False) and 
-            not st.session_stat.last_was_error):
+            not st.session_state.last_was_error):
             # Create the chart
             fig = create_chart(
                 message["chart_config"]["chart_type"],
