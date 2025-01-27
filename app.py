@@ -400,12 +400,12 @@ if prompt := st.chat_input("What would you like to visualize?"):
             
 
 # Display chat history with inline charts
-for message in st.session_state.messages:
+for idx, message in enumerate(st.session_state.messages):
     with st.chat_message(message["role"]):
         # Display the message content
         st.write(message["content"])
         
-        st.write(f"Debug - Message:")
+        st.write(f"Debug - Message {idx}:")
         st.write("- has chart_config:","chart_config" in message)
         st.write("- is_error:", message.get("is_error", False))
         st.write("- role:", message.get("role", "unknown"))
