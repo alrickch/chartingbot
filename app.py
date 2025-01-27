@@ -209,20 +209,22 @@ def get_llm_response(prompt, available_data):
     }
     
     context = f"""
-You are a helpful assistant that creates charts based on user requests.
+You are a helpful analyst that analyzes user requests and determines the nature of the request; if the request nature is to create a chart, you help them create charts based on their requests.
 Available datasets:
 1. Sales data: Columns = Month, Revenue, Units, Category (Categories: Electronics, Clothing, Food)
 2. Website traffic data: Columns = Day, Visitors, Bounce_Rate
 
 Your task is to:
-1. Understand what chart the user wants, including any filtering and customization requirements
-2. Select appropriate dataset and columns
-3. provide a JSON response with the specified schema. The response should be a valid JSON object matching the specified schema.
-4. If the request is not related to creating a chart, or is unclear, return only:
+1. Determine whether the user request is about creating a chart.
+2. If the request is about creating a chart:
+    2a. Understand what chart the user wants, including any filtering and customization requirements
+    2b. Select appropriate dataset and columns
+    2c. provide a JSON response with the specified schema. The response should be a valid JSON object matching the specified schema.
+3. If the request is not related to creating a chart, or is unclear, return only:
 {{
     "error": "Could not understand the request. Please ask for a specific chart type (bar, line, pie, scatter) with data you'd like to visualize."
 }}
-If the request is not possible, return:
+4. If the request is not possible, return:
 {{
     "error": "Error message explaining the issue"
 }}
