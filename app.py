@@ -332,7 +332,7 @@ Try asking for something like:
 # Chat input
 if prompt := st.chat_input("What would you like to visualize?"):
     # Add user message
-    st.session_state.messages.append({"role": "user", "content": prompt})
+    st.session_state.messages.append({"role": "user", "content": prompt, "is_error": False})
     
     # Get response from LLM
     llm_response = get_llm_response(prompt, get_sample_data())
