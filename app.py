@@ -226,7 +226,7 @@ Your task is to:
     2c. provide a JSON response with the specified schema. The response should be a valid JSON object matching the specified schema.
 3. If the request is not related to creating a chart, or is unclear, return only:
 {{
-    "error": "Could not understand the request. Please ask for a specific chart type (bar, line, pie, scatter) with data you'd like to visualize."
+    "error": "Error: Could not understand the request. Please ask for a specific chart type (bar, line, pie, scatter) with data you'd like to visualize."
 }}
 
 Available datasets:
