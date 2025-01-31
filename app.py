@@ -396,7 +396,6 @@ for idx, message in enumerate(st.session_state.messages):
         st.write("- has chart_config:","chart_config" in message)
         st.write("- is_error:", message.get("is_error", False))
         st.write("- role:", message.get("role", "unknown"))
-        st.write("- state:", st.session_state.last_was_error)
 
         if (message["role"] == "assistant" and 
             not message["is_error"] and 
