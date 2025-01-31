@@ -215,7 +215,7 @@ def get_llm_response(prompt, available_data):
             }
         },
         "required": ["is_error", "message"],
-        "alloOf": [
+        "allOf": [
             {
                 "if":{
                     "properties":{"is_error": {"type": "boolean", "enum": ["false"]}}
