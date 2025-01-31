@@ -351,9 +351,7 @@ if prompt := st.chat_input("What would you like to visualize?"):
                 "filter_value": llm_response.get("filter_value"),
                 "customization": llm_response.get("customization")
             },
-            "chart_id": st.session_state.chart_counter
         })
-        st.session_state.chart_counter += 1
     
     st.session_state.messages.append(assistant_message)
 
@@ -380,6 +378,11 @@ for idx, message in enumerate(st.session_state.messages):
             not message["is_error"] and 
             "chart_config" in message):
             
+            chart_id = st.session_state.chart_counter
+            download_id = st.session_state.download_counter
+            st.session_state.chart_counter += 1
+            st.session_state.download_counter += 1
+
             fig = create_chart(
                 message["chart_config"]["chart_type"],
                 message["chart_config"]["dataset"],
@@ -391,17 +394,14 @@ for idx, message in enumerate(st.session_state.messages):
             )
             
             # Display the chart with unique key
-            st.plotly_chart(fig, use_container_width=True, key=f"chart_{message['chart_id']}")
-            
-            download_id = st.session_state.download_counter
-            st.session_state.download_counter += 1
+            st.plotly_chart(fig, use_container_width=True, key=f"chart_{chart_id}")
 
             # Add download button with unique key
             png_img = get_chart_image(fig)
             st.download_button(
                 label="Download PNG",
                 data=png_img,
-                file_name=f"chart_{message['chart_id']}.png",
+                file_name=f"chart_{chart_id}.png",
                 mime="image/png",
-                key=f"download_{message['download_id']}"
+                key=f"download_{download_id}"
             )
