@@ -287,7 +287,6 @@ Example invalid requests:
 - "How are you?"
 
 IMPORTANT: 
--The chart_type must be exactly one of these values: bar, line, pie, scatter. No other values are allowed.
 -Return an error if the request is not clearly about creating a chart.
 -Only return valid JSON.
 """
