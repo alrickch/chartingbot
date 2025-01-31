@@ -214,13 +214,8 @@ def get_llm_response(prompt, available_data):
                 "description": "Response message to the user"
             }
         },
-        "required": ["is_error", "message"],
-        "if": {
-            "properties": { "is_error": { "const": False } }
-        },
-        "then": {
-            "required": ["chart_type", "dataset", "x_column", "y_column"]
-        }
+        "required": ["is_error", "message"]
+        
     }
     
     context = f"""
@@ -289,9 +284,13 @@ IMPORTANT:
 
         json_data = json.loads(response.text)
         # st.write("json_data:", json_data)
+        
+        #vvalidate json output structure
+        if "is_error" not in json_data or "message" not in json_data:
+            return {"is_error": True, "message": "Invalid LLM response structure"}
 
          # Validate response structure for non-error responses
-        if not json_data.get("is_error", True):
+        if not json_data.get("is_error", True):          
             required_fields = ["chart_type", "dataset", "x_column", "y_column", "message"]
             if not all(field in json_data for field in required_fields):
                 return {"is_error": True, "message": "Invalid response structure from LLM"}
