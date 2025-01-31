@@ -21,8 +21,7 @@ if 'chart_counter' not in st.session_state:
     st.session_state.chart_counter = 0 # Add counter for unique charts
 if 'download_counter' not in st.session_state:
     st.session_state.download_counter = 0  # Add counter for unique download buttons
-if 'last_was_error' not in st.session_state:
-    st.session_state.last_was_error = False
+
 
 # Sample dataset
 def get_sample_data():
@@ -154,6 +153,10 @@ def get_llm_response(prompt, available_data):
     response_schema = {
         "type": "object",
         "properties": {
+            "is_error": {
+                "type": "boolean",
+                "description": "Flag indicating if the response is an error"
+            },
             "chart_type": {
                 "type": "string",
                 "enum": ["bar", "line", "pie", "scatter"],
@@ -211,7 +214,17 @@ def get_llm_response(prompt, available_data):
                 "description": "Response message to the user"
             }
         },
-        "required": ["chart_type", "dataset", "x_column", "y_column", "message"]
+        "required": ["is_error", "message"],
+        "alloOf": [
+            {
+                "if":{
+                    "properties":{"is_error": {"type": "boolean", "enum": ["false"]}}
+                },
+                "then": {
+                    "required": ["chart_type", "dataset", "x_column", "y_column"]
+                }
+            }
+        ]
     }
     
     context = f"""
@@ -221,7 +234,8 @@ Your primary task is to first determine if the user's request is actually asking
 If the user's request does not explicitly ask for a chart or visualization, or if the request is unclear,
 you must return ONLY this error response:
 {{
-    "error": "I can only help with creating charts. Please ask me to create a specific type of chart (bar, line, pie, scatter) with the data you'd like to visualize."
+    "is_error": true,
+    "message": "I can only help with creating charts. Please ask me to create a specific type of chart (bar, line, pie, scatter) with the data you'd like to visualize."
 }}
 
 Your task is to:
@@ -232,7 +246,8 @@ Your task is to:
     2c. provide a JSON response with the specified schema. The response should be a valid JSON object matching the specified schema.
 3. If the request is not related to creating a chart, or is unclear, return only:
 {{
-    "error": "Error: Could not understand the request. Please ask for a specific chart type (bar, line, pie, scatter) with data you'd like to visualize."
+   "is_error": true,
+    "message": "I can only help with creating charts. Please ask me to create a specific type of chart (bar, line, pie, scatter) with the data you'd like to visualize."
 }}
 
 Available datasets:
@@ -241,6 +256,7 @@ Available datasets:
 
 For valid chart requests ONLY (where the user clearly asks for a visualization), provide a JSON response with:
 {{
+    "is_error": false,
     "chart_type": "bar/line/pie/scatter",
     "dataset": "sales/website_traffic",
     "x_column": "column_name",
@@ -267,6 +283,7 @@ Example invalid requests:
 - "What is cheese?"
 - "Hello"
 - "Tell me about sales"
+- "test"
 - "How are you?"
 
 IMPORTANT: 
@@ -298,21 +315,21 @@ IMPORTANT:
         if "error" not in json_data:
             required_fields = ["chart_type", "dataset", "x_column", "y_column", "message"]
             if not all(field in json_data for field in required_fields):
-                return {"error": "Invalid response structure from LLM"}
+                return {"is_error": True, "message": "Invalid response structure from LLM"}
                     
             valid_chart_types = ["bar", "line", "pie", "scatter"]
             if json_data["chart_type"] not in valid_chart_types:
-                return {"error": "Invalid chart type specified"}
+                return {"is_error": True, "message": "Invalid chart type specified"}
                     
             valid_datasets = ["sales", "website_traffic"]
             if json_data["dataset"] not in valid_datasets:
-                return {"error": "Invalid dataset specified"}
+                return {"is_error": True, "message": "Invalid dataset specified"}
         return json_data
         
     except json.JSONDecodeError as e:
-        return {"error": f"Failed to parse JSON response: {str(e)}"}
+        return {"is_error": True, "message": f"Failed to parse JSON response: {str(e)}"}
     except Exception as e:
-        return {"error": f"An error occurred while processing your request: {str(e)}"}
+        return {"is_error": True, "message": f"An error occurred while processing your request: {str(e)}"}
 
 st.title("Chart Assistant")
 
@@ -332,34 +349,22 @@ Try asking for something like:
 # Chat input
 if prompt := st.chat_input("What would you like to visualize?"):
     # Add user message
-    st.session_state.messages.append({"role": "user", "content": prompt, "is_error": False})
+    st.session_state.messages.append({"role": "user", "content": prompt})
     
     # Get response from LLM
     llm_response = get_llm_response(prompt, get_sample_data())
     
-    if "error" in llm_response:
-        #set error state first
-        st.session_state.last_was_error = True
-        
-        # Store only user messages and messages without charts
-        st.session_state.messages = [
-            msg for msg in st.session_state.messages 
-            if msg["role"] == "user"
-        ]
-        
-        # Add the error message
-        st.session_state.messages.append({
-            "role": "assistant", 
-            "content": llm_response["error"],
-            "is_error": True
-        })
-        st.write("Debug - Just added error message:", st.session_state.messages[-1])
+    # Add assistant's response
+    assistant_message = {
+        "role": "assistant",
+        "content": llm_response["message"],
+        "is_error": llm_response["is_error"]
+    }
 
-    else:
-        try:
-            st.session_state.last_was_error = False
-            # Create the chart configuration
-            chart_config = {
+    # If it's not an error, add chart configuration
+    if not llm_response["is_error"]:
+        assistant_message.update({
+            "chart_config": {
                 "chart_type": llm_response["chart_type"],
                 "dataset": llm_response["dataset"],
                 "x_column": llm_response["x_column"],
@@ -367,38 +372,19 @@ if prompt := st.chat_input("What would you like to visualize?"):
                 "filter_column": llm_response.get("filter_column"),
                 "filter_value": llm_response.get("filter_value"),
                 "customization": llm_response.get("customization")
-            }
-            
-            # Create a complete response with message and chart configuration
-            current_chart_id = st.session_state.chart_counter
-            chart_response = {
-                "role": "assistant",
-                "content": llm_response["message"],
-                "chart_config": chart_config,
-                "chart_id": current_chart_id,
-                "is_error": False  # Add flag to identify non-error messages
-            }
-            st.session_state.chart_counter += 1
-            
-            # Add response to chat history
-            st.session_state.messages.append(chart_response)
-            
-            # Add follow-up message
-            st.session_state.messages.append({
-                "role": "assistant", 
-                "content": "Would you like to create another chart? Feel free to ask!",
-                "is_error": False
-            })
-            
-        except Exception as e:
-            st.session_state.last_was_error = True
-            error_message = f"Sorry, I encountered an error while creating the chart: {str(e)}"
-            st.session_state.messages.append({
-                "role": "assistant", 
-                "content": error_message,
-                "is_error": True
-            })
-            
+            },
+            "chart_id": st.session_state.chart_counter
+        })
+        st.session_state.chart_counter += 1
+    
+    st.session_state.messages.append(assistant_message)
+
+    # Add follow-up message
+    st.session_state.messages.append({
+        "role": "assistant", 
+        "content": "Would you like to create another chart? Feel free to ask!",
+        "is_error": False
+    })      
 
 # Display chat history with inline charts
 for idx, message in enumerate(st.session_state.messages):
@@ -413,15 +399,10 @@ for idx, message in enumerate(st.session_state.messages):
         st.write("- role:", message.get("role", "unknown"))
         st.write("- state:", st.session_state.last_was_error)
 
-        show_chart = (
-            "chart_config" in message and 
-            not message.get("is_error", True) and 
-            not st.session_state.last_was_error and
-            "role" in message and 
-            message["role"] == "assistant"
-        )
-        
-        if show_chart:
+        if (message["role"] == "assistant" and 
+            not message["is_error"] and 
+            "chart_config" in message):
+            
             fig = create_chart(
                 message["chart_config"]["chart_type"],
                 message["chart_config"]["dataset"],
@@ -435,6 +416,9 @@ for idx, message in enumerate(st.session_state.messages):
             # Display the chart with unique key
             st.plotly_chart(fig, use_container_width=True, key=f"chart_{message['chart_id']}")
             
+            download_id = st.session_state.download_counter
+            st.session_state.download_counter += 1
+
             # Add download button with unique key
             png_img = get_chart_image(fig)
             st.download_button(
@@ -442,5 +426,5 @@ for idx, message in enumerate(st.session_state.messages):
                 data=png_img,
                 file_name=f"chart_{message['chart_id']}.png",
                 mime="image/png",
-                key=f"download_{message['chart_id']}"
+                key=f"download_{message['download_id']}"
             )
