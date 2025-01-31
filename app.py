@@ -215,14 +215,12 @@ def get_llm_response(prompt, available_data):
             }
         },
         "required": ["is_error", "message"],
-        "allOf": [
+        "dependencies": [
             {
-                "if":{
-                    "properties":{"is_error": {"type": "boolean", "enum": ["false"]}}
-                },
-                "then": {
-                    "required": ["chart_type", "dataset", "x_column", "y_column"]
-                }
+                "chart_type": ["dataset", "x_column", "y_column"],
+                "dataset": ["chart_type", "x_column", "y_column"],
+                "x_column": ["chart_type", "dataset", "y_column"],
+                "y_column": ["chart_type", "dataset", "x_column"]
             }
         ]
     }
@@ -254,24 +252,8 @@ Available datasets:
 1. Sales data: Columns = Month, Revenue, Units, Category (Categories: Electronics, Clothing, Food)
 2. Website traffic data: Columns = Day, Visitors, Bounce_Rate
 
-For valid chart requests ONLY (where the user clearly asks for a visualization), provide a JSON response with:
-{{
-    "is_error": false,
-    "chart_type": "bar/line/pie/scatter",
-    "dataset": "sales/website_traffic",
-    "x_column": "column_name",
-    "y_column": "column_name",
-    "filter_column": "column_name_for_filtering (optional)",
-    "filter_value": "value_to_filter_by (optional)",
-    "customization": {{
-        "title": "chart title (optional)",
-        "x_axis_title": "x-axis label (optional)",
-        "y_axis_title": "y-axis label (optional)",
-        "color": "color name or hex code (optional)",
-        "template": "plotly template name (optional)"
-    }},
-    "message": "Your response message to the user"
-}}
+For valid chart requests ONLY (where the user clearly asks for a visualization), provide a JSON response with all required field.
+Optional fields include filter_colun, filter_value, and customization objects.
 
 Example valid requests:
 - "Show me a bar chart of monthly revenue"
@@ -311,7 +293,7 @@ IMPORTANT:
         # st.write("json_data:", json_data)
 
          # Validate response structure for non-error responses
-        if "error" not in json_data:
+        if not json_data.get("is_error", True):
             required_fields = ["chart_type", "dataset", "x_column", "y_column", "message"]
             if not all(field in json_data for field in required_fields):
                 return {"is_error": True, "message": "Invalid response structure from LLM"}
