@@ -215,14 +215,12 @@ def get_llm_response(prompt, available_data):
             }
         },
         "required": ["is_error", "message"],
-        "dependencies": [
-            {
-                "chart_type": ["dataset", "x_column", "y_column"],
-                "dataset": ["chart_type", "x_column", "y_column"],
-                "x_column": ["chart_type", "dataset", "y_column"],
-                "y_column": ["chart_type", "dataset", "x_column"]
-            }
-        ]
+        "if": {
+            "properties": { "is_error": { "const": False } }
+        },
+        "then": {
+            "required": ["chart_type", "dataset", "x_column", "y_column"]
+        }
     }
     
     context = f"""
